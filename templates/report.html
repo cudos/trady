@@ -21,13 +21,15 @@
       <td>{{ strategy.description }}</td>
     </tr>
     <tr>
-      <th>Source URL</th>
+      <th>Price history</th>
       <td>{{ source_url }}</td>
     </tr>
   </table>
 
-  <h2>Historical prices</h2>
-  The prices were taken from {{ source_url }}. Here's a short summary of the dataset:
+  <h2>Price history</h2>
+  The prices were taken from {{ source_url }}.
+  <img src="{{ chart_all_prices_image }}">
+  Here's a short summary of the dataset:
   {{ raw_description }}
 
   And here are the raw prices:
