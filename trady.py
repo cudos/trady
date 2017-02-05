@@ -68,6 +68,18 @@ class PriceHistory(object):
         with open(output_file, "w") as fp:
             fp.write(self.raw_prices)
 
+    @property
+    def description_as_html(self):
+        return self.df.describe().to_html()
+
+    @property
+    def first_date(self):
+        return self.df.index.min()
+
+    @property
+    def last_date(self):
+        return self.df.index.max()
+
 
 def main():
     # Setup command line parser
@@ -143,8 +155,7 @@ def main():
     all_prices_chart = os.path.join(chart_dir, "all-prices-chart.png")
     price_history.plot_prices(all_prices_chart)
     template_vars["all_prices_chart"] = all_prices_chart
-    template_vars["source_url"] = price_history.source_url
-    template_vars["raw_description"] = price_history.df.describe().to_html()
+    template_vars["price_history"] = price_history
 
     # Run the simulation
     simulator = Simulator(strategy=strategy, price_history=price_history)
