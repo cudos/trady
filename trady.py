@@ -33,6 +33,42 @@ import requests
 import trady.strategies as strategies
 
 
+class Simulator(object):
+
+    def __init__(self, strategy, price_history):
+        pass
+
+    def run(self):
+        pass
+
+
+class PriceHistory(object):
+
+    def __init__(self, symbol):
+        self.symbol = symbol
+        params = {"s": self.symbol}
+        url = "http://ichart.finance.yahoo.com/table.csv"
+        r = requests.get(url, params=params)
+        self.source_url = r.url
+        self.raw_prices = r.text
+        self.df = pd.read_csv(io.StringIO(self.raw_prices), parse_dates=["Date"])
+        self.df = self.df.sort_values(by="Date")
+        self.df.set_index("Date", inplace=True)
+
+    def plot_prices(self, output_file):
+        plt.figure()
+        plt.title("Price history {}".format(self.symbol))
+        self.df.Close.plot(figsize=(10, 4))
+        plt.xlabel("Year")
+        plt.ylabel("Price")
+        plt.grid()
+        plt.savefig(output_file)
+
+    def write_prices_to_file(self, output_file):
+        with open(output_file, "w") as fp:
+            fp.write(self.raw_prices)
+
+
 def main():
     # Setup command line parser
     parser = argparse.ArgumentParser(
@@ -40,8 +76,8 @@ def main():
     )
     parser.add_argument("--symbol", help="the symbol identifying the paper to use in the simulation")
     parser.add_argument("--strategy", help="the strategy to use in the simulation process.")
-    parser.add_argument("--show-report", default="latest", help="display report with given report id (default: latest report)")
-    parser.add_argument("--list-reports", action="store_true", help="list all available reports")
+    parser.add_argument("--show-report", help="display report with given report id")
+    parser.add_argument("--list-reports", action="store_true", help="list existing reports")
     args = parser.parse_args()
 
     # Setup simulations base directory
@@ -98,29 +134,21 @@ def main():
         "trady_revision": subprocess.check_output(["git", "describe", "--always"]).strip()
     }
 
-    # Get price data for given symbol from yahoo finance
-    params = {"s": args.symbol}
-    url = "http://ichart.finance.yahoo.com/table.csv"
-    print "Get historical prices from yahoo finance for symbol {}...".format(args.symbol)
-    r = requests.get(url, params=params)
-    with open(os.path.join(output_dir_tmp, "all-prices.raw"), "w") as raw:
-        raw.write(r.text)
-    df = pd.read_csv(io.StringIO(r.text), parse_dates=["Date"])
-    df = df.sort_values(by="Date")
-    df.set_index("Date", inplace=True)
-    plt.figure()
-    plt.title("Price history {}".format(args.symbol))
-    df.Close.plot(figsize=(10, 4))
-    plt.xlabel("Year")
-    plt.ylabel("Price")
-    plt.grid()
-    chart_all_prices_image = os.path.join(chart_dir, "all-prices.png")
-    plt.savefig(chart_all_prices_image)
-    template_vars["chart_all_prices_image"] = chart_all_prices_image
-    print "Got {} records".format(df.shape[0])
-    template_vars["source_url"] = r.url
-    template_vars["raw_description"] = df.describe().to_html()
-    template_vars["raw_values"] = df.to_html()
+    # Get price history data for the given symbol
+    print "Get historical prices for symbol {}...".format(args.symbol)
+    price_history = PriceHistory(
+        symbol=args.symbol,
+    )
+    price_history.write_prices_to_file(os.path.join(output_dir_tmp, "all-prices.csv"))
+    all_prices_chart = os.path.join(chart_dir, "all-prices-chart.png")
+    price_history.plot_prices(all_prices_chart)
+    template_vars["all_prices_chart"] = all_prices_chart
+    template_vars["source_url"] = price_history.source_url
+    template_vars["raw_description"] = price_history.df.describe().to_html()
+
+    # Run the simulation
+    simulator = Simulator(strategy=strategy, price_history=price_history)
+    simulator.run()
 
     # Render report as html
     env = jinja2.Environment(loader=jinja2.FileSystemLoader("./templates"))
