@@ -78,6 +78,7 @@ def main():
         "simulation_id": current_simulation_id,
         "strategy": strategy,
         "symbol": args.symbol,
+        "trady_revision": subprocess.check_output(["git", "describe", "--always"]).strip()
     }
 
     # Get price data for given symbol from yahoo finance
