@@ -34,33 +34,50 @@ import trady.strategies as strategies
 
 
 def main():
+    # Setup command line parser
     parser = argparse.ArgumentParser(
         description="trady - analyse algorithmic trading systems"
     )
-    parser.add_argument("--symbol", type=str, required=True, help="the symbol identifying the paper to use in the simulation")
-    parser.add_argument("--strategy", type=str, required=True, help="the strategy to use in the simulation process")
+    parser.add_argument("--symbol", help="the symbol identifying the paper to use in the simulation")
+    parser.add_argument("--strategy", help="the strategy to use in the simulation process.")
+    parser.add_argument("--show-report", default="latest", help="display report with given report id (default: latest report)")
+    parser.add_argument("--list-reports", action="store_true", help="list all available reports")
     args = parser.parse_args()
 
+    # Setup simulations base directory
     if not os.path.exists("simulations"):
         os.mkdir("simulations")
 
+    # List available reports when requested
+    if args.list_reports:
+        simulations = sorted([int(x) for x in os.listdir("simulations")])
+        for simulation in simulations:
+            print simulation
+        sys.exit(0)
+
+    # Display report with given report id
+    if args.show_report:
+        report_path = os.path.join("simulations", args.show_report, "report.pdf")
+        if not os.path.exists(report_path):
+            print >> sys.stderr, "Report with ID {} does not exist. See {} --list-reports for a list of available reports.".format(args.show_report, sys.argv[0])
+            sys.exit(1)
+        subprocess.Popen(["see", report_path])
+        sys.exit(0)
+
+    # Setup simulations counter
     if os.path.exists("last_simulation"):
         with open("last_simulation", "r") as last_simulation:
             last_simulation_id = int(last_simulation.read())
     else:
         last_simulation_id = 0
-
     current_simulation_id = last_simulation_id + 1
 
+    # Setup output directories
     output_dir = os.path.join("simulations", str(current_simulation_id))
     if os.path.exists(output_dir):
         print >> sys.stderr, "Error: simulation output directory '{}' already exists".format(output_dir)
         sys.exit(1)
-
-    # Create temporary output directory
     output_dir_tmp = tempfile.mkdtemp()
-
-    # Create chart output directory
     chart_dir = os.path.join(output_dir_tmp, "charts")
     os.mkdir(chart_dir)
 
@@ -70,9 +87,9 @@ def main():
     if not strategy_cls:
         print >> sys.stderr, "Error: strategy '{}' does not exist".format(args.strategy)
         sys.exit(1)
-
     strategy = strategy_cls()
 
+    # Setup variables to be used when rendering the report
     template_vars = {
         "title": "some title",
         "simulation_id": current_simulation_id,
@@ -124,7 +141,7 @@ def main():
 
     # Display output directory
     subprocess.call(["tree", output_dir])
-    subprocess.call(["evince", "--fullscreen", os.path.join(output_dir, "report.pdf")])
+    subprocess.Popen(["see", os.path.join(output_dir, "report.pdf")])
 
     return 0
 
