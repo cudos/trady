@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import inspect
 import io
 import os
 import shutil
@@ -30,55 +31,8 @@ import pandas as pd
 import pdfkit
 import requests
 
+import trady
 import trady.strategies as strategies
-
-
-class Simulator(object):
-
-    def __init__(self, strategy, price_history):
-        pass
-
-    def run(self):
-        pass
-
-
-class PriceHistory(object):
-
-    def __init__(self, symbol):
-        self.symbol = symbol
-        params = {"s": self.symbol}
-        url = "http://ichart.finance.yahoo.com/table.csv"
-        r = requests.get(url, params=params)
-        self.source_url = r.url
-        self.raw_prices = r.text
-        self.df = pd.read_csv(io.StringIO(self.raw_prices), parse_dates=["Date"])
-        self.df = self.df.sort_values(by="Date")
-        self.df.set_index("Date", inplace=True)
-
-    def plot_prices(self, output_file):
-        plt.figure()
-        plt.title("Price history {}".format(self.symbol))
-        self.df.Close.plot(figsize=(10, 4))
-        plt.xlabel("Year")
-        plt.ylabel("Price")
-        plt.grid()
-        plt.savefig(output_file)
-
-    def write_prices_to_file(self, output_file):
-        with open(output_file, "w") as fp:
-            fp.write(self.raw_prices)
-
-    @property
-    def description_as_html(self):
-        return self.df.describe().to_html()
-
-    @property
-    def first_date(self):
-        return self.df.index.min()
-
-    @property
-    def last_date(self):
-        return self.df.index.max()
 
 
 def main():
@@ -87,9 +41,11 @@ def main():
         description="trady - analyse algorithmic trading systems"
     )
     parser.add_argument("--symbol", help="the symbol identifying the paper to use in the simulation")
-    parser.add_argument("--strategy", help="the strategy to use in the simulation process.")
+    parser.add_argument("--strategy", help="the strategy to use in the simulation process")
+    parser.add_argument("--equity", type=float, default=5000.0, help="the equity to start the simulation with (default: 5000.0)")
     parser.add_argument("--show-report", help="display report with given report id")
     parser.add_argument("--list-reports", action="store_true", help="list existing reports")
+    parser.add_argument("--list-strategies", action="store_true", help="list existing strategies")
     args = parser.parse_args()
 
     # Setup simulations base directory
@@ -101,6 +57,13 @@ def main():
         simulations = sorted([int(x) for x in os.listdir("simulations")])
         for simulation in simulations:
             print simulation
+        sys.exit(0)
+
+    # List available strategies when requested
+    if args.list_strategies:
+        for name, obj in inspect.getmembers(trady.strategies):
+            if inspect.isclass(obj):
+                print obj.__name__, "-", " ".join(obj.description.split())
         sys.exit(0)
 
     # Display report with given report id
@@ -131,42 +94,48 @@ def main():
 
     # Get strategy module
     print "Load strategy module {}...".format(args.strategy)
-    strategy_cls = getattr(strategies, args.strategy)
+    strategy_cls = getattr(strategies, args.strategy, None)
+    if not strategy_cls:
+        print >> sys.stderr, "Error: strategy does not exist: {}".format(args.strategy)
+        print >> sys.stderr, "List all strategies with --list-strategies"
+        sys.exit(1)
+
     if not strategy_cls:
         print >> sys.stderr, "Error: strategy '{}' does not exist".format(args.strategy)
         sys.exit(1)
-    strategy = strategy_cls()
 
     # Setup variables to be used when rendering the report
     template_vars = {
         "title": "some title",
         "simulation_id": current_simulation_id,
-        "strategy": strategy,
+        "strategy": strategy_cls,
         "symbol": args.symbol,
         "trady_revision": subprocess.check_output(["git", "describe", "--always"]).strip()
     }
 
     # Get price history data for the given symbol
     print "Get historical prices for symbol {}...".format(args.symbol)
-    price_history = PriceHistory(
+    chart = Chart(
         symbol=args.symbol,
     )
-    price_history.write_prices_to_file(os.path.join(output_dir_tmp, "all-prices.csv"))
+    chart.write_prices_to_file(os.path.join(output_dir_tmp, "all-prices.csv"))
     all_prices_chart = os.path.join(chart_dir, "all-prices-chart.png")
-    price_history.plot_prices(all_prices_chart)
+    chart.plot_prices(all_prices_chart)
     template_vars["all_prices_chart"] = all_prices_chart
-    template_vars["price_history"] = price_history
+    template_vars["chart"] = chart
 
     # Run the simulation
-    simulator = Simulator(strategy=strategy, price_history=price_history)
-    simulator.run()
+    print "Run simulation..."
+    simulation = trady.Simulation(strategy_cls=strategy_cls, chart=chart, initial_equity=args.equity)
+    simulation.start()
+    print simulation.get_summary()
 
     # Render report as html
     env = jinja2.Environment(loader=jinja2.FileSystemLoader("./templates"))
     template = env.get_template("report.html")
     html_out = template.render(template_vars)
 
-    # Render report as
+    # Render report as pdf
     print "Render report {}...".format(os.path.join(output_dir, "report.pdf"))
     pdfkit.from_string(html_out, os.path.join(output_dir_tmp, "report.pdf"), css=os.path.join("templates", "style.css"))
 

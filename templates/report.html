@@ -22,11 +22,11 @@
     </tr>
     <tr>
       <th>Price history</th>
-      <td>{{ price_history.source_url }}</td>
+      <td>{{ chart.source_url }}</td>
     </tr>
     <tr>
       <th>Price history range</th>
-      <td>{{ price_history.first_date }} - {{ price_history.last_date }}</td>
+      <td>{{ chart.first_date }} - {{ chart.last_date }}</td>
     <tr>
       <th>trady revision</th>
       <td>{{ trady_revision }}</td>
@@ -34,12 +34,25 @@
   </table>
 
   <h2>Simulation</h2>
-  ...
-
+  <h3>Entry tests</h3>
+  <ul>
+    <li>Fixed-stop and target exit</li>
+    <li>Fixed-bar exit</li>
+    <li>Random exit</li>
+  </ul>
+  <h3>Exit tests</h3>
+  <h3>Core system tests</h3>
+  <h3>Monkey see, monkey do</h3>
+  <ul>
+    <li>Monkey entry</li>
+    <li>Monkey exit</li>
+    <li>Monkey entry, monkey exit</lI>
+  </ul>
   <h2>Price history</h2>
-  The prices were taken from {{ source_url }}.
+  The prices were taken from {{ chart.source_url }}. The history ranges from {{ chart.first_date }} to {{ chart.last_date }} and
+  contains {{ chart.number_of_values }} values.
   <img src="{{ all_prices_chart }}">
   Here's a short summary of the dataset:
-  {{ price_history.description_as_html | safe }}
+  {{ chart.description_as_html | safe }}
 </body>
 </html>

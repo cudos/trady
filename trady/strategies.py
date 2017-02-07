@@ -15,7 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import trady
 
-class TrivialStrategy(object):
-    name = "TrivialStrategy"
-    description = """Enter the market with an amount of $ one day. Exit the market the day after."""
+
+class JH201702_EnterOnceExitOnce(trady.BaseStrategy):
+
+    description = """Enter the market once at any time. Exit the market at any later time."""
+
+    def trade(self, bar):
+        ...
