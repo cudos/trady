@@ -22,5 +22,5 @@ class JH201702_EnterOnceExitOnce(trady.BaseStrategy):
 
     description = """Enter the market once at any time. Exit the market at any later time."""
 
-    def trade(self, bar):
-        ...
+    def process_bar(self, bar):
+        pass

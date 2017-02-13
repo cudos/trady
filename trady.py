@@ -26,7 +26,6 @@ import sys
 import tempfile
 
 import jinja2
-import matplotlib.pyplot as plt
 import pandas as pd
 import pdfkit
 import requests
@@ -41,6 +40,11 @@ def main():
         description="trady - analyse algorithmic trading systems"
     )
     parser.add_argument("--symbol", help="the symbol identifying the paper to use in the simulation")
+    parser.add_argument("--anual-volatilities", action="store_true", help="display anual volatilities")
+    parser.add_argument("--anual-returns", action="store_true", help="display anual mean returns and volatilities")
+    parser.add_argument("--plot-prices", action="store_true", help="plot price chart of chart with given symbol")
+    parser.add_argument("--plot-anual-return-distributions", action="store_true", help="plot return distributions, one per year")
+    parser.add_argument("--output", help="output file path")
     parser.add_argument("--strategy", help="the strategy to use in the simulation process")
     parser.add_argument("--equity", type=float, default=5000.0, help="the equity to start the simulation with (default: 5000.0)")
     parser.add_argument("--show-report", help="display report with given report id")
@@ -73,6 +77,52 @@ def main():
             print >> sys.stderr, "Report with ID {} does not exist. See {} --list-reports for a list of available reports.".format(args.show_report, sys.argv[0])
             sys.exit(1)
         subprocess.Popen(["see", report_path])
+        sys.exit(0)
+
+    # Show anual volatilities when requested
+    if args.anual_volatilities:
+        if not args.symbol:
+            print >> sys.stderr, "Error: missing option: --symbol"
+            sys.exit(1)
+        chart = trady.Chart()
+        chart.load_api(symbol=args.symbol)
+        print chart.get_anual_volatilities()
+        sys.exit(0)
+
+    # Shop anual mean returns (and volatilities) when requested
+    if args.anual_returns:
+        if not args.symbol:
+            print >> sys.stderr, "Error: missing option: --symbol"
+            sys.exit(1)
+        chart = trady.Chart()
+        chart.load_api(args.symbol)
+        print chart.get_anual_returns()
+        sys.exit(0)
+
+    # Plot prices when requested
+    if args.plot_prices:
+        if not args.symbol:
+            print >> sys.stderr, "Error: missing option: --symbol"
+            sys.exit(1)
+        if not args.output:
+            print >> sys.stderr, "Error: missing option: --output"
+            sys.exit(1)
+        chart = trady.Chart()
+        chart.load_api(args.symbol)
+        chart.plot_prices(args.output)
+        sys.exit(0)
+
+    # Plot anual return distributions
+    if args.plot_anual_return_distributions:
+        if not args.symbol:
+            print >> sys.stderr, "Error: missing option: --symbol"
+            sys.exit(1)
+        if not args.output:
+            print >> sys.stderr, "Error: missing option: --output"
+            sys.exit(1)
+        chart = trady.Chart()
+        chart.load_api(args.symbol)
+        chart.plot_anual_return_distributions(args.output)
         sys.exit(0)
 
     # Setup simulations counter

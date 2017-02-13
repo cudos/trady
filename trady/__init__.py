@@ -16,12 +16,15 @@
 
 import io
 import pandas as pd
+import requests
+import matplotlib.pyplot as plt
+import math
 
 
 class Simulation(object):
     """A Simulation is responsible for initializing a Chart, an Account,
     a Strategy and a StrategyEngine and let the StrategyEngine run
-    over the bars the Chart contains.
+    over the given Chart.
 
     """
     def __init__(self, strategy_cls, chart, initial_equity):
@@ -43,12 +46,21 @@ class Account(object):
         margin (float): ...
 
     """
-    def __init__(self, cash, day=0, commission, margin_rate=None):
+    def __init__(self, cash, commission, day=0, margin_rate=None):
         self.cash = float(cash)
         self.day = day
         self.margin_rate = float(margin_rate)
         self.commission = commission
         self.starting_account_value = self.account_value
+
+    def trade_stock(self):
+        pass
+
+    def trade_option(self):
+        pass
+
+    def short_stock(self):
+        pass
 
     def increase_day(self):
         self.day += 1
@@ -89,24 +101,6 @@ class Account(object):
 
         """
         return math.pow(self.account_value / self.starting_account_value, 365.0 / self.day) - 1
-
-    def trade(self, stock_symbol, transaction, quantity, price, duration):
-
-    def make_order(self, verb, trade_size, action, signal_name=None):
-        """Make an order.
-
-        Args:
-            verb (str): One of "buy", "short", "sell", "cover".
-            trade_size (float): The amount of shares/contracts to order.
-            action (str): One of "next bar at market", "next bar stop",
-                "next bar limit", "this bar on close".
-            signal_name (str): The name of the order/signal that will appear on
-            the chart. If no signal name is specified, the default
-            signal name for the order will be the order
-            verb: "buy", "short", "sell" or "cover".
-
-        """
-        pass
 
     def set_stop_loss(self, stop_amount):
         """Set a safety stop loss for both long and short positions.
@@ -167,17 +161,27 @@ class Chart(object):
     def __init__(self):
         self.bars = None
 
-    def load_string(self, string, date_name, columns=None):
-        """Load chart values from a given string as csv
+    def load_dict(self, bars):
+        """Load bar records from a python list of of dictionaries where each
+        dictionary describes a record.
+
+        """
+        self.bars = pd.DataFrame(bars)
+        self.bars["date"] = pd.to_datetime(self.bars["date"])
+        self._finalize_bars()
+
+    def load_string(self, string, date_name="date", columns=None):
+        """Load chart values from a given string as csv.
+
         """
         self.bars = pd.read_csv(io.StringIO(string), parse_dates=[date_name])
         if columns:
             self.bars.rename(index=str, columns=columns, inplace=True)
-        self.bars = self.bars.sort_values(by="date")
-        self.bars.set_index("date", inplace=True)
+        self._finalize_bars()
 
     def load_api(self, symbol):
         """Load chart values from an API
+
         """
         self.symbol = symbol
         params = {"s": self.symbol}
@@ -194,14 +198,38 @@ class Chart(object):
             "Adj Close": "adj close"
         })
 
-    def plot_prices(self, output_file):
-        plt.figure()
+    def get_anual_volatilities(self):
+        """Return a DataFrame containing anual volatilities.
+
+        """
+        if self.bars is None:
+            return None
+
+        return self.bars["return"].groupby(self.bars.index.year).std().rename("volatility") * math.sqrt(250.0)
+
+    def get_anual_returns(self):
+        if self.bars is None:
+            return None
+
+        volatilities = self.get_anual_volatilities()
+        mean_returns = self.bars["return"].groupby(self.bars.index.year).mean().rename("return mean")
+        return pd.concat([mean_returns, volatilities], axis=1)
+
+    def plot_prices(self, output):
+        fig = plt.figure()
         plt.title("Price history {}".format(self.symbol))
-        self.df.Close.plot(figsize=(10, 4))
+        self.bars.close.plot(figsize=(10, 4))
         plt.xlabel("Year")
         plt.ylabel("Price")
         plt.grid()
-        plt.savefig(output_file)
+        plt.tight_layout()
+        plt.savefig(output)
+
+    def plot_anual_return_distributions(self, output):
+        plt.figure()
+        self.bars["return"].hist(by=self.bars.index.year)
+        plt.grid()
+        plt.savefig(output)
 
     def write_prices_to_file(self, output_file):
         with open(output_file, "w") as fp:
@@ -226,9 +254,15 @@ class Chart(object):
     def get_prices(self):
         return self.bars.iterrows()
 
+    def _finalize_bars(self):
+        self.bars = self.bars.sort_values(by="date")
+        self.bars.set_index("date", inplace=True)
+        self.bars["return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
+
 
 class BaseStrategy(object):
     """Base class for all strategies in trady.strategies
+
     """
     def __init__(self, account):
         self.account = account
