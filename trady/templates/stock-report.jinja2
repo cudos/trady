@@ -15,25 +15,38 @@
 </head>
 <body>
   <h1>Stock Report for {{ symbol }}</h1>
-  <div id="prices"/>
+  <p id="prices-all"/>
+  <p id="returns-all"/>
 </body>
 <script>
-  d3.json("/chart?symbol={{ symbol }}", function(data) {
-    console.log(data);
-    //data = MG.convert.date(data, 'date', "%FT%T.000Z");
-    data.map(function(d) {
-      d.date = new Date(d.date);
-    });
-    MG.data_graphic({
-        title: "Stock Prices {{ symbol }} - All Available History",
-        description: "Stock prices {{ symbol }}.",
-        data: data,
-  width: 800,
-        height: 300,
-        target: '#prices',
-        x_accessor: 'date',
-        y_accessor: 'close',
-    })
+d3.json("/chart?symbol={{ symbol }}", function(data) {
+  console.log(data);
+  data.map(function(d) {
+    d.date = new Date(d.date);
   });
+
+  MG.data_graphic({
+    title: "Daily Stock Prices {{ symbol }} - All Available History",
+    data: data,
+    width: 800,
+    height: 300,
+    target: '#prices-all',
+    x_accessor: 'date',
+    y_accessor: 'close',
+    area: false,
+  });
+
+  MG.data_graphic({
+    title: "Daily Returns {{ symbol }} - All Available History",
+    data: data,
+    width: 800,
+    height: 300,
+    target: '#returns-all',
+    x_accessor: 'date',
+    y_accessor: 'return',
+    area: false,
+    format: 'percentage',
+  });
+});
 </script>
 </html>
