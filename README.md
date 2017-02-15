@@ -1,12 +1,9 @@
-# trady - analyse algorithmic trading systems
+# trady - the stock engine
 
+Setup a development instance:
+```
+python setup.py develop
+pserve --reload development.ini
+```
 
-Display anual volatilities of the MSCI share:
-```
-./trady.py --symbol MSCI --anual-volatilities
-```
-
-Plot the entire price history:
-```
-./trady.py --symbol MSCI --plot-prices --output prices.png
-```
+Now point your browser to http://0.0.0.0:6543/stock-report?symbol=MSCI.

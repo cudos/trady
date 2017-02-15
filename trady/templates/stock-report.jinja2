@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>{{ symbol }}</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=PT+Serif:400,700,400italic' rel='stylesheet' type='text/css'>
+  <link href='https://netdna.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.css' rel='stylesheet' type='text/css'>
+  <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="static/style.css">
+  <link rel="stylesheet" href="static/metricsgraphics.css">
+  <script src="static/jquery-3.1.1.min.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="static/metricsgraphics.min.js"></script>
+</head>
+<body>
+  <h1>Stock Report for {{ symbol }}</h1>
+  <div id="prices"/>
+</body>
+<script>
+  d3.json("/chart?symbol={{ symbol }}", function(data) {
+    console.log(data);
+    //data = MG.convert.date(data, 'date', "%FT%T.000Z");
+    data.map(function(d) {
+      d.date = new Date(d.date);
+    });
+    MG.data_graphic({
+        title: "Stock Prices {{ symbol }} - All Available History",
+        description: "Stock prices {{ symbol }}.",
+        data: data,
+  width: 800,
+        height: 300,
+        target: '#prices',
+        x_accessor: 'date',
+        y_accessor: 'close',
+    })
+  });
+</script>
+</html>

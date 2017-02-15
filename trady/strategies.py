@@ -15,10 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import trady
+
+class BaseStrategy(object):
+    """Base class for all strategies in trady.strategies
+
+    """
+    def __init__(self, account):
+        self.account = account
 
 
-class JH201702_EnterOnceExitOnce(trady.BaseStrategy):
+class JH201702_EnterOnceExitOnce(BaseStrategy):
 
     description = """Enter the market once at any time. Exit the market at any later time."""
 
