@@ -90,7 +90,7 @@
             arr = [];
 
         for (i = 0; i < data.length; i++) {
-          x = Math.floor(data[i].return / step) * step;
+          x = Math.floor(data[i]['log_return'] / step) * step;
           if (!hist[x]) {
             hist[x] = 0;
           }
@@ -116,7 +116,7 @@
           type: 'column',
         },
         title: {
-          text: '{{ symbol }} Return Distribution'
+          text: '{{ symbol }} Return Distribution (Logarithmic Returns)'
         },
         xAxis: {
           gridLineWidth: 1

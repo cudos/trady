@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import io
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
@@ -38,6 +39,8 @@ class Chart(object):
         url = "http://ichart.finance.yahoo.com/table.csv"
         r = requests.get(url, params=params)
         self.source_url = r.url
+        if r.status_code != 200:
+            return
         self.load_string(r.text, date_name="Date", columns={
             "Date": "date",
             "Open": "open",
@@ -55,7 +58,7 @@ class Chart(object):
         if self.bars is None:
             return None
 
-        return self.bars["return"].groupby(self.bars.index.year).std().rename("volatility") * math.sqrt(250.0)
+        return self.bars["log_return"].groupby(self.bars.index.year).std().rename("volatility") * math.sqrt(250.0)
 
     def get_anual_returns(self):
         if self.bars is None:
@@ -107,4 +110,5 @@ class Chart(object):
     def _finalize_bars(self):
         self.bars.sort_values(by="date", inplace=True)
         #self.bars.set_index("date", inplace=True)
-        self.bars["return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
+        self.bars["pct_return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
+        self.bars["log_return"] = np.log(self.bars.close) - np.log(self.bars.close.shift())
