@@ -10,6 +10,7 @@
 <body>
   <h1>{{ symbol }} Stock Report</h1>
   <div id="all-prices"></div>
+  <div id="return-distribution"></div>
 </body>
 <script>
   $(function () {
@@ -81,7 +82,60 @@
           yAxis: 1,
         }]
       });
-    });
+
+      function histogram(data, step) {
+        var hist = {},
+            x,
+            i,
+            arr = [];
+
+        for (i = 0; i < data.length; i++) {
+          x = Math.floor(data[i].return / step) * step;
+          if (!hist[x]) {
+            hist[x] = 0;
+          }
+          hist[x]++;
+        }
+
+        for (x in hist) {
+          if (hist.hasOwnProperty((x))) {
+            arr.push([parseFloat(x), hist[x]]);
+          }
+        }
+
+        arr.sort(function(a, b) {
+          return a[0] - b[0];
+        })
+
+        return arr;
+      }
+
+      // Plot distribution of returns
+      Highcharts.chart('return-distribution', {
+        chart: {
+          type: 'column',
+        },
+        title: {
+          text: '{{ symbol }} Return Distribution'
+        },
+        xAxis: {
+          gridLineWidth: 1
+        },
+        yAxis: [{
+          title: {
+            text: 'Histogram Count',
+          },
+        }],
+        series: [{
+          name: 'Histogram',
+          type: 'column',
+          data: histogram(data, 0.001),
+          pointPadding: 0,
+          groupPadding: 0,
+          pointPlacement: 'between',
+        }]
+      })
+    })
   })
 </script>
 </html>
