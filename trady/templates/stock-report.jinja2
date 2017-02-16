@@ -15,14 +15,28 @@
   $(function () {
     $.getJSON('prices?symbol={{ symbol }}', function (data) {
       console.log(data);
+
+      // Prepare data
       var len = data.length,
-          newData = [],
+          ohlc = [],
+          volume = [],
           i;
 
       for (i = 0; i < data.length; i += 1) {
-        newData.push([data[i].date, data[i].close]);
+        ohlc.push([
+          data[i].date,
+          data[i].open,
+          data[i].high,
+          data[i].low,
+          data[i].close
+        ]);
+        volume.push([
+          data[i].date,
+          data[i].volume,
+        ]);
       }
 
+      // Plot prices
       Highcharts.stockChart('all-prices', {
         rangeSelector: {
           selected: 1
@@ -30,12 +44,41 @@
         title: {
           text: '{{ symbol }} Stock Price'
         },
+        yAxis: [{
+          labels: {
+            align: 'right',
+            x: -3
+          },
+          title: {
+            text: 'OHLC'
+          },
+          height: '60%',
+          lineWdth: 2
+        }, {
+          labels: {
+            align: 'right',
+            x: -3
+          },
+          title: {
+            text: 'Volume'
+          },
+          top: '65%',
+          height: '35%',
+          offset: 0,
+          lineWidth: 2
+        }],
         series: [{
+          type: 'candlestick',
           name: '{{ symbol }}',
-          data: newData,
+          data: ohlc,
           tooltip: {
             valueDecimals: 2
           }
+        }, {
+          type: 'column',
+          name: 'Volume',
+          data: volume,
+          yAxis: 1,
         }]
       });
     });
