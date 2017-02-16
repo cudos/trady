@@ -12,7 +12,7 @@ from pyramid.httpexceptions import (
     HTTPNotFound,
 )
 
-from trady.chart import Chart
+import trady
 
 
 here = os.path.dirname(__file__)
@@ -26,9 +26,9 @@ def stock_report_view(request):
     }
 
 
-@view_config(route_name="chart", renderer="string")
-def chart_view(request):
+@view_config(route_name="prices", renderer="string")
+def prices_view(request):
     symbol = request.params.get("symbol")
-    chart = Chart()
+    chart = trady.chart.Chart()
     chart.load_api(symbol)
-    return chart.bars.to_json(orient="records", date_format="iso")
+    return chart.bars.to_json(orient="records", date_format="epoch")

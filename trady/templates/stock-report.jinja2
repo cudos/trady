@@ -3,50 +3,42 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>{{ symbol }}</title>
-  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=PT+Serif:400,700,400italic' rel='stylesheet' type='text/css'>
-  <link href='https://netdna.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.css' rel='stylesheet' type='text/css'>
-  <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" href="static/style.css">
-  <link rel="stylesheet" href="static/metricsgraphics.css">
-  <script src="static/jquery-3.1.1.min.js"></script>
-  <script src="https://d3js.org/d3.v4.min.js"></script>
-  <script src="static/metricsgraphics.min.js"></script>
+  <script src="/static/jquery-3.1.1.min.js"></script>
+  <script src="/static/highstock/code/highstock.js"></script>
 </head>
 <body>
-  <h1>Stock Report for {{ symbol }}</h1>
-  <p id="prices-all"/>
-  <p id="returns-all"/>
+  <h1>{{ symbol }} Stock Report</h1>
+  <div id="all-prices"></div>
 </body>
 <script>
-d3.json("/chart?symbol={{ symbol }}", function(data) {
-  console.log(data);
-  data.map(function(d) {
-    d.date = new Date(d.date);
-  });
+  $(function () {
+    $.getJSON('prices?symbol={{ symbol }}', function (data) {
+      console.log(data);
+      var len = data.length,
+          newData = [],
+          i;
 
-  MG.data_graphic({
-    title: "Daily Stock Prices {{ symbol }} - All Available History",
-    data: data,
-    width: 800,
-    height: 300,
-    target: '#prices-all',
-    x_accessor: 'date',
-    y_accessor: 'close',
-    area: false,
-  });
+      for (i = 0; i < data.length; i += 1) {
+        newData.push([data[i].date, data[i].close]);
+      }
 
-  MG.data_graphic({
-    title: "Daily Returns {{ symbol }} - All Available History",
-    data: data,
-    width: 800,
-    height: 300,
-    target: '#returns-all',
-    x_accessor: 'date',
-    y_accessor: 'return',
-    area: false,
-    format: 'percentage',
-  });
-});
+      Highcharts.stockChart('all-prices', {
+        rangeSelector: {
+          selected: 1
+        },
+        title: {
+          text: '{{ symbol }} Stock Price'
+        },
+        series: [{
+          name: '{{ symbol }}',
+          data: newData,
+          tooltip: {
+            valueDecimals: 2
+          }
+        }]
+      });
+    });
+  })
 </script>
 </html>
