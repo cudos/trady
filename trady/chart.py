@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import io
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ class Chart(object):
         """
         self.bars = pd.read_csv(io.StringIO(string), parse_dates=[date_name])
         if columns:
-            self.bars.rename(index=str, columns=columns, inplace=True)
+            self.bars.rename(index=int, columns=columns, inplace=True)
         self._finalize_bars()
 
     def load_api(self, symbol):
@@ -112,3 +113,8 @@ class Chart(object):
         #self.bars.set_index("date", inplace=True)
         self.bars["pct_return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
         self.bars["log_return"] = np.log(self.bars.close) - np.log(self.bars.close.shift())
+        # Calculate 30 day volatilities
+        for index, row in self.bars.iterrows():
+            print index, index+30
+            volatility = self.bars.iloc[index:index+30].log_return.std() * math.sqrt(250)
+            self.bars.set_value(index, "volatility_30d", volatility)

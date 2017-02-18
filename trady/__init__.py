@@ -22,4 +22,4 @@ def main(global_config, **settings):  # pragma: no cover
 
 def addroutes(config):
     config.add_route("stock-report", "/stock-report")
-    config.add_route("prices", "/prices")
+    config.add_route("chart", "/chart")

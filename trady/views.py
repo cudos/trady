@@ -26,8 +26,8 @@ def stock_report_view(request):
     }
 
 
-@view_config(route_name="prices", renderer="string")
-def prices_view(request):
+@view_config(route_name="chart", renderer="string")
+def chart_view(request):
     symbol = request.params.get("symbol")
     chart = trady.chart.Chart()
     chart.load_api(symbol)

@@ -2,25 +2,27 @@
 <html>
 <head lang="en">
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ symbol }}</title>
-  <link rel="stylesheet" href="static/style.css">
+  <!-- <link rel="stylesheet" href="static/pure-release-0.6.2/pure-min.css"> -->
   <script src="/static/jquery-3.1.1.min.js"></script>
   <script src="/static/highstock/code/highstock.js"></script>
 </head>
 <body>
   <h1>{{ symbol }} Stock Report</h1>
-  <div id="all-prices"></div>
+  <div id="prices"></div>
   <div id="return-distribution"></div>
+  <div id="volatilities"></div>
 </body>
 <script>
   $(function () {
-    $.getJSON('prices?symbol={{ symbol }}', function (data) {
+    $.getJSON('chart?symbol={{ symbol }}', function (data) {
       console.log(data);
-
       // Prepare data
       var len = data.length,
           ohlc = [],
           volume = [],
+          volatilities_30d = [],
           i;
 
       for (i = 0; i < data.length; i += 1) {
@@ -35,15 +37,22 @@
           data[i].date,
           data[i].volume,
         ]);
+        volatilities_30d.push([
+          data[i].date,
+          data[i].volatility_30d,
+        ]);
       }
 
       // Plot prices
-      Highcharts.stockChart('all-prices', {
+      Highcharts.stockChart('prices', {
+        chart: {
+          height: 800
+        },
         rangeSelector: {
-          selected: 1
+          selected: 5
         },
         title: {
-          text: '{{ symbol }} Stock Price'
+          text: '{{ symbol }} Stock Prices, Volumes and Volatilities'
         },
         yAxis: [{
           labels: {
@@ -53,8 +62,20 @@
           title: {
             text: 'OHLC'
           },
-          height: '60%',
-          lineWdth: 2
+          height: '40%',
+          lineWidth: 2
+        }, {
+          labels: {
+            align: 'right',
+            x: -3
+          },
+          title: {
+            text: 'Anualized 30 Day Volatility'
+          },
+          top: '60%',
+          height: '35%',
+          offset: 0,
+          lineWidth: 2
         }, {
           labels: {
             align: 'right',
@@ -63,14 +84,14 @@
           title: {
             text: 'Volume'
           },
-          top: '65%',
-          height: '35%',
+          top: '45%',
+          height: '10%',
           offset: 0,
           lineWidth: 2
         }],
         series: [{
           type: 'candlestick',
-          name: '{{ symbol }}',
+          name: 'Price',
           data: ohlc,
           tooltip: {
             valueDecimals: 2
@@ -79,7 +100,24 @@
           type: 'column',
           name: 'Volume',
           data: volume,
-          yAxis: 1,
+          yAxis: 2,
+        }, {
+          name: 'Anualized 30 Day Volatility',
+          data: volatilities_30d,
+          lineWidth: 0,
+          marker: {
+            enabled: true,
+            radius: 3
+          },
+          tooltip: {
+            valueDecimals: 2
+          },
+          states: {
+            hover: {
+              lineWidthPlus: 0
+            }
+          },
+          yAxis: 1
         }]
       });
 
@@ -116,7 +154,7 @@
           type: 'column',
         },
         title: {
-          text: '{{ symbol }} Return Distribution (Logarithmic Returns)'
+          text: '{{ symbol }} Continuously Compounded Return Distribution'
         },
         xAxis: {
           gridLineWidth: 1
@@ -134,7 +172,10 @@
           groupPadding: 0,
           pointPlacement: 'between',
         }]
-      })
+      });
+
+      // Next plot goes here...
+
     })
   })
 </script>
