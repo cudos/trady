@@ -113,8 +113,9 @@ class Chart(object):
         #self.bars.set_index("date", inplace=True)
         self.bars["pct_return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
         self.bars["log_return"] = np.log(self.bars.close) - np.log(self.bars.close.shift())
-        # Calculate 30 day volatilities
+        # Calculate 30 and 90 day volatilities
         for index, row in self.bars.iterrows():
-            print index, index+30
             volatility = self.bars.iloc[index:index+30].log_return.std() * math.sqrt(250)
             self.bars.set_value(index, "volatility_30d", volatility)
+            volatility = self.bars.iloc[index:index+90].log_return.std() * math.sqrt(250)
+            self.bars.set_value(index, "volatility_90d", volatility)
