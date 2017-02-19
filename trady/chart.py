@@ -52,14 +52,21 @@ class Chart(object):
             "Adj Close": "adj close"
         })
 
-    def get_anual_volatilities(self):
+    def get_volatilities(self, delta):
         """Return a DataFrame containing anual volatilities.
 
         """
-        if self.bars is None:
-            return None
+        values = []
+        for index, row in self.bars.iterrows():
+            offset = self.bars.index.get_loc(index)
+            if offset < delta:
+                volatility = None
+            else:
+                volatility = self.bars.iloc[offset-delta+1:offset+1].log_return.std() * math.sqrt(250)
+            values.append(volatility)
 
-        return self.bars["log_return"].groupby(self.bars.index.year).std().rename("volatility") * math.sqrt(250.0)
+        return pd.Series(values, index=self.bars.index)
+
 
     def get_anual_returns(self):
         if self.bars is None:
@@ -109,13 +116,12 @@ class Chart(object):
         return self.bars.iterrows()
 
     def _finalize_bars(self):
-        self.bars.sort_values(by="date", inplace=True)
-        #self.bars.set_index("date", inplace=True)
+        self.bars.sort_values(by="date", inplace=True, ascending=True)
+        self.bars.set_index("date", inplace=True)
+        self.bars.index.name = "date"
         self.bars["pct_return"] = (self.bars.close - self.bars.close.shift()) / self.bars.close.shift()
         self.bars["log_return"] = np.log(self.bars.close) - np.log(self.bars.close.shift())
-        # Calculate 30 and 90 day volatilities
-        for index, row in self.bars.iterrows():
-            volatility = self.bars.iloc[index:index+30].log_return.std() * math.sqrt(250)
-            self.bars.set_value(index, "volatility_30d", volatility)
-            volatility = self.bars.iloc[index:index+90].log_return.std() * math.sqrt(250)
-            self.bars.set_value(index, "volatility_90d", volatility)
+        # Assign 30, 60 and 90 day volatilities
+        self.bars = self.bars.assign(volatility_30d=self.get_volatilities(delta=30))
+        self.bars = self.bars.assign(volatility_60d=self.get_volatilities(delta=60))
+        self.bars = self.bars.assign(volatility_90d=self.get_volatilities(delta=90))

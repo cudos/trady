@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import math
 import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 
-import trady
+from trady.chart import Chart
 
 
 
@@ -19,7 +20,7 @@ def test_Chart_load_dict():
             "close": 20,
         },
     ]
-    chart = trady.Chart()
+    chart = Chart()
     chart.load_dict(data)
     assert len(chart.bars) == 2
     assert chart.bars.close[0] == 10
@@ -28,7 +29,7 @@ def test_Chart_load_dict():
     assert chart.bars.index[1] == pd.Timestamp("2017-10-02 00:00:00")
 
 
-def test_Chart_load_dict_sets_daily_return():
+def test_Chart_load_dict_sets_log_return():
     data = [
         {
             "date": "2017-01-01",
@@ -43,12 +44,11 @@ def test_Chart_load_dict_sets_daily_return():
             "close": 15,
         },
     ]
-    chart = trady.Chart()
+    chart = Chart()
     chart.load_dict(data)
-    pdt.assert_series_equal(
-        chart.bars.daily_return,
-        pd.Series([np.nan, 1.0, -0.25], index=chart.bars.index, name="daily_return")
-    )
+    assert chart.bars.log_return[2] == math.log(15) - math.log(20)
+    assert chart.bars.log_return[1] == math.log(20) - math.log(10)
+    assert np.isnan(chart.bars.log_return[0])
 
 
 def test_Chart_load_string():
@@ -57,7 +57,7 @@ Date,Open,High,Low,Close,Volume
 2017-02-03,130.98,132.06,130.3,132.06,16760692.0
 2017-02-06,131.24,132.85,130.76,130.88,24068306.0
 """
-    chart = trady.Chart()
+    chart = Chart()
     chart.load_string(data, date_name="Date", columns={
         "Date": "date", "Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"
     })
@@ -78,29 +78,57 @@ Date,Open,High,Low,Close,Volume
     assert chart.bars.volume[1] == 24068306.0
 
 
-def test_Chart_get_anual_volatilities():
-    chart = trady.Chart()
+def test_Chart_bars_ordered_by_date_descending():
+    chart = Chart()
     chart.load_dict([
         {
             "date": "2017-01-01",
+            "close": 10,
+        },
+        {
+            "date": "2017-01-02",
+            "close": 11,
+        },
+        {
+            "date": "2017-01-03",
+            "close": 12,
+        },
+    ])
+    assert chart.bars.index[2] == pd.Timestamp("2017-01-03")
+    assert chart.bars.index[1] == pd.Timestamp("2017-01-02")
+    assert chart.bars.index[0] == pd.Timestamp("2017-01-01")
+
+
+def test_Chart_get_volatilities():
+    chart = Chart()
+    chart.load_dict([
+        {
+            "date": "2017-01-04",
             "close": 100,
         },
         {
             "date": "2017-01-02",
-            "close": 120,
+            "close": 110,
         },
         {
             "date": "2017-01-03",
-            "close": 114,
+            "close": 90,
         },
         {
-            "date": "2018-01-01",
-            "close": 114,
-        },
-        {
-            "date": "2018-01-02",
-            "close": 125.4,
+            "date": "2017-01-01",
+            "close": 105,
         },
     ])
-    volatilities = chart.get_anual_volatilities()
-    pdt.assert_series_equal(volatilities, pd.Series([0.176777, 0.070711], index=[2017, 2018], name="volatility"))
+    volatilities = chart.get_volatilities(delta=3)
+    assert np.isnan(volatilities[0])
+    assert np.isnan(volatilities[1])
+    assert np.isnan(volatilities[2])
+    log_returns = [
+        math.log(100.0) - math.log(90.0),
+        math.log(90.0) - math.log(110.0),
+        math.log(110.0) - math.log(105.0),
+    ]
+    log_returns = map(lambda x: round(x, 6), log_returns)
+    mu = sum(log_returns) / 3.0
+    standard_dev = math.sqrt(sum(map(lambda x: math.pow(x - mu, 2), log_returns)) / 2.0) * math.sqrt(250)
+    assert round(volatilities[3], 4) == round(standard_dev, 4)

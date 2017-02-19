@@ -23,6 +23,7 @@
           ohlc = [],
           volume = [],
           volatilities_30d = [],
+          volatilities_60d = [],
           volatilities_90d = [],
           i;
 
@@ -42,9 +43,13 @@
           data[i].date,
           data[i].volatility_30d,
         ]);
+        volatilities_60d.push([
+          data[i].date,
+          data[i].volatility_60d,
+        ]);
         volatilities_90d.push([
           data[i].date,
-          data[i].volatility_90d,
+          data[i].volatility_90d
         ]);
       }
 
@@ -75,7 +80,7 @@
             x: -3
           },
           title: {
-            text: 'Anualized 30/90 Day Volatility'
+            text: 'Anualized 30/60/90 Day Volatility'
           },
           top: '60%',
           height: '35%',
@@ -124,6 +129,23 @@
           },
           yAxis: 1
         }, {
+          name: 'Anualized 60 Day Volatility',
+          data: volatilities_60d,
+          lineWidth: 0,
+          marker: {
+            enabled: true,
+            radius: 3
+          },
+          tooltip: {
+            valueDecimals: 2
+          },
+          states: {
+            hover: {
+              lineWidthPlus: 0
+            }
+          },
+          yAxis: 1
+        },{
           name: 'Anualized 90 Day Volatility',
           data: volatilities_90d,
           lineWidth: 0,

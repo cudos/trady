@@ -31,4 +31,4 @@ def chart_view(request):
     symbol = request.params.get("symbol")
     chart = trady.chart.Chart()
     chart.load_api(symbol)
-    return chart.bars.to_json(orient="records", date_format="epoch")
+    return chart.bars.reset_index().to_json(orient="records", date_format="epoch")
